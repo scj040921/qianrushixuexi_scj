@@ -2,10 +2,8 @@
 void strip_space(char *s)
 {
     int i=0;
-    while(s[i]!=' '&&s[i]!='\0');
-    if(s[i]=='\0')
-        i++;
-
+    while(s[i]!=' '&&s[i]!='\0')//定位第一个空格
+    i++;
     if(s[i]=='\0')
     {
         return;
@@ -26,6 +24,8 @@ void strip_space(char *s)
 int main()
 {
     char s[50];
+    int len = strlen(s);
+    if (len > 0 && s[len-1] == '\n') s[len-1] = '\0';   
     fgets(s,50,stdin);
     strip_space(s);
     printf("%s",s);
