@@ -1,17 +1,18 @@
-#include<stdio>
+#include<stdio.h>
 int main()
 {
-    int m,n;
-    int a[m][n];
-    int *b[m];
-    int temp =0;
-    for(int i=0;i<m;i++)
+    int a[2][3]={{1,2,3},{4,5,6}};
+    int (*b[2])[3];
+    b[0]=&a[0];
+    b[1]=&a[1];
+    int sum=0;
+    for(int k=0;k<2;k++)
     {
-        b[i]=a;
-        a+=n;
-        for(int j=0;j<n;j++)
+        for(int i=0;i<3;i++)
         {
-            temp+=b[i][j];
-        }
+            sum+=(*b[k])[i];
+        }   
     }
+    printf("%d\n",sum);
+    return 0;
 }
