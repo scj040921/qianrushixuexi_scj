@@ -5,6 +5,7 @@
 #ifndef DATATYPE
 #define DATATYPE int
 #endif
+typedef DATATYPE datatype;
 typedef struct node
 {
     datatype data;
@@ -42,7 +43,7 @@ static linklist new_node(datatype n,void(*assignment(datatype *,datatype)))
     new->next=new;
     return new;
 }
-void list_add_tail(linklist head,linklist new)
+static void list_add_tail(linklist head,linklist new)
 {
     new->prev=head->prev;
     new->next=head;
@@ -50,7 +51,7 @@ void list_add_tail(linklist head,linklist new)
     head->prev->next=new;
     head->prev=new;
 }
-void list_traverse(linklist head, void (*visit)(datatype))
+static void list_traverse(linklist head, void (*visit)(datatype))
 {
     linklist p = head->next;
     while(p != head)
@@ -59,4 +60,26 @@ void list_traverse(linklist head, void (*visit)(datatype))
         p = p->next;
     }
     printf("\n");
+}
+static void list_node_del(linklist p)
+{
+    p->prev->next=p->next;
+    p->next->prev=p->prev;
+    p->prev=p->next=p;
+}
+static void list_destory(linklist head,void(*destory)(datatype *))
+{
+    if (head==NULL)
+        return;
+    linklist p=head->next;
+    for(;p!=head;p=p->next)   
+    {
+        list_node_del(p);
+        if(destory==NULL)
+            free(p);
+        else
+            destory(&p->data);
+    }
+    free(head);
+    head=NULL;
 }
