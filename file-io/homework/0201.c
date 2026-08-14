@@ -29,6 +29,7 @@ void copy_dir(const char *src,const char *dst)
     char ori_path[1024]={0};
     char src_path[1024]={0};
     char dst_path[1024]={0};
+    getcwd(ori_path, 1024);
     if(chdir(src)==-1)
     {
         fprintf(stderr,"Error:%s\n",strerror(errno));
