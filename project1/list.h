@@ -27,7 +27,7 @@ typedef struct list_head
     pos=container_of(pos->member.next,typeof(*pos),member))
 
 #define list_for_each_entry_safe(pos,n,head,member)\
-    for(pos=container_of((head)->next,typeof(*pos),member)),\
+    for(pos=container_of((head)->next,typeof(*pos),member));\
     n=container_of(pos->member.next,typeof(*pos),member);\
     &pos->member!=(head);\
     pos=n,n=container_of(n->member.next,typeof(*pos),member)
