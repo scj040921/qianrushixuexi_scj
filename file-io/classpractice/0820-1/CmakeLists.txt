@@ -1,0 +1,14 @@
+cmake_minimum_required(VERSION 3.8)
+project(cmake_demo VERSION 1.0.0 LANGUAGES C CXX)
+set(CMAKE_C_COMPILER "gcc")   # 指定C编译器
+#set(CMAKE_CXX_COMPILER "aarch64-linux-gnu-g++") # 指定C++编译器
+set(CMAKE_C_FLAGS "-O2 -Wl,-rpath=./lib")
+
+# 定义一个变量 SRCDIR，使其值等于当前路径
+set(SRCDIR $(pwd))
+# 引用变量 SRCDIR 的值来设定头文件所在路径 
+include_directories($(SRCDIR)/inc)
+add_executable(main main.c)
+target_link_libraries(main a)  # 指明可执行文件main依赖于库a
+target_link_libraries(main b)  # 指明可执行文件main依赖于库b
+add_subdirectory(lib/)

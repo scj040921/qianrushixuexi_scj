@@ -1,0 +1,1 @@
+gcc -fPIC -O2 -Wl,-rpath=./lib -shared -Wl,-soname,liba.so -o liba.so CMakeFiles/a.dir/a.c.o 

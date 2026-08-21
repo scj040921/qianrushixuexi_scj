@@ -1,0 +1,4 @@
+/mnt/c/Users/24656/Documents/GitHub/qianrushixuexi_scj/file-io/classpractice/0820-1/lib/CMakeFiles/a.dir
+/mnt/c/Users/24656/Documents/GitHub/qianrushixuexi_scj/file-io/classpractice/0820-1/lib/CMakeFiles/b.dir
+/mnt/c/Users/24656/Documents/GitHub/qianrushixuexi_scj/file-io/classpractice/0820-1/lib/CMakeFiles/edit_cache.dir
+/mnt/c/Users/24656/Documents/GitHub/qianrushixuexi_scj/file-io/classpractice/0820-1/lib/CMakeFiles/rebuild_cache.dir
