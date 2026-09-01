@@ -14,6 +14,7 @@ int main()
     if(pid==0)
     {
         dup2(fd[0],STDIN_FILENO);
+        close(fd[1]);
         execl("/usr/bin/wc","wc","-w",NULL);
     }
     else if(pid>0)
