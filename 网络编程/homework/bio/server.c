@@ -29,7 +29,7 @@ int main()
     struct sockaddr_in bindaddr;
     bzero(&bindaddr,sizeof(bindaddr));
     bindaddr.sin_family=AF_INET;
-    bindaddr.sin_addr.s_addr=inet_addr("172.19.154.41");
+    bindaddr.sin_addr.s_addr=inet_addr("8.138.175.137");
     bindaddr.sin_port=htons(2000);
     struct sockaddr_in clientaddr;
     bzero(&clientaddr,sizeof(clientaddr));
