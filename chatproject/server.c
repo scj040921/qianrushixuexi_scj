@@ -63,13 +63,16 @@ static void send_online_list(list *client)
 
 static int relay_data(int from_sock, int to_sock, long size)
 {
+    int ret;
     char buf[2048];
     long total = 0;
     while(total < size)
     {
         size_t want = size - total < (long)sizeof(buf) ? (size_t)(size - total) : sizeof(buf);
         ssize_t n = recv(from_sock, buf, want, 0);
-        if(n <= 0 || send_all(to_sock, buf, (size_t)n) < 0) return -1;
+        if(n <= 0) return -1;
+        ret=send_all(to_sock, buf, (size_t)n);
+        if(ret < 0) return -1;
         total += n;
     }
     return 0;
@@ -77,10 +80,14 @@ static int relay_data(int from_sock, int to_sock, long size)
 
 static void *recv_fun(void *arg)
 {
+    int ret;
     list *sender = arg;
     char line[2048];
-    while(recv_line(sender->sock, line, sizeof(line)) == 0)
+    while(1)
     {
+        ret=recv_line(sender->sock, line, sizeof(line));
+        if(ret != 0)
+            break;
         if(strcmp(line, "getlist") == 0)
         {
             send_online_list(sender);
@@ -90,7 +97,8 @@ static void *recv_fun(void *arg)
         char *ip = strtok(NULL, "@");
         char *port_text = strtok(NULL, "@");
         char *field4 = strtok(NULL, "@");
-        if(cmd == NULL || ip == NULL || port_text == NULL || field4 == NULL) continue;
+        if(cmd == NULL || ip == NULL || port_text == NULL || field4 == NULL)
+            continue;
         list *target = find_client(ip, (unsigned short)atoi(port_text));
         if(target == NULL)
         {
@@ -114,17 +122,23 @@ static void *recv_fun(void *arg)
                 printf("%s消息格式错误\n", cmd);
                 continue;
             }
-            static unsigned int file_id = 1;
-            static unsigned int emoji_id = 1;
-            char filename[64];
-            if(strcmp(cmd, "file") == 0)
-                snprintf(filename, sizeof(filename), "file_%u", file_id++);
-            else
-                snprintf(filename, sizeof(filename), "emoji_%u", emoji_id++);
+            char *filename=field4;
+             if(strchr(filename, '/') != NULL || strchr(filename, '\\') != NULL)
+            {
+                printf("非法文件名，已拒绝\n");
+                continue;
+            }
             snprintf(message, sizeof(message), "%s#%s#%ld#%s\n",
                      strcmp(cmd, "file") == 0 ? "sendfile" : "emoji", filename, size, type);
-            if(send_all(target->sock, message, strlen(message)) < 0 || relay_data(sender->sock, target->sock, size) < 0)
+            ret=send_all(target->sock, message, strlen(message));
+            if(ret < 0)
                 printf("转发%s失败\n", strcmp(cmd, "file") == 0 ? "文件" : "表情包");
+            else
+            {
+                ret=relay_data(sender->sock, target->sock, size);
+                if(ret < 0)
+                    printf("转发%s失败\n", strcmp(cmd, "file") == 0 ? "文件" : "表情包");
+            }
         }
     }
     printf("客户端%s:%hu已断开连接\n", sender->ip, sender->port);
@@ -135,6 +149,7 @@ static void *recv_fun(void *arg)
 
 int main(void)
 {
+    int ret;
     int listen_sock;
     struct sockaddr_in bindaddr = {0}, clientaddr = {0};
     pthread_attr_t attr;
@@ -146,24 +161,43 @@ int main(void)
     if(listen_sock < 0) { perror("socket"); return 1; }
     int on = 1;
     setsockopt(listen_sock, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
-    if(bind(listen_sock, (struct sockaddr *)&bindaddr, sizeof(bindaddr)) < 0) { perror("bind"); return 1; }
-    if(listen(listen_sock, 10) < 0) { perror("listen"); return 1; }
+    ret=bind(listen_sock, (struct sockaddr *)&bindaddr, sizeof(bindaddr));
+    if(ret < 0)
+    {
+        perror("bind");
+        return 1;
+    }
+    ret=listen(listen_sock, 10);
+    if(ret < 0)
+    {
+        perror("listen");
+        return 1;
+    }
     pthread_attr_init(&attr);
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
     printf("服务器已启动，监听端口 10000\n");
     while(1)
     {
         socklen_t size = sizeof(clientaddr);
-        int sock = accept(listen_sock, (struct sockaddr *)&clientaddr, &size);
-        if(sock < 0) { perror("accept"); continue; }
+        int sock;
+        sock=accept(listen_sock, (struct sockaddr *)&clientaddr, &size);
+        if(sock < 0)
+        {
+            perror("accept");
+            continue;
+        }
         list *node = calloc(1, sizeof(*node));
-        if(node == NULL) { close(sock); continue; }
+        if(node == NULL)
+        {
+            close(sock);
+            continue;
+        }
         node->sock = sock;
         snprintf(node->ip, sizeof(node->ip), "%s", inet_ntoa(clientaddr.sin_addr));
         node->port = ntohs(clientaddr.sin_port);
         list_insert_tail(node, head);
         printf("客户端%s:%hu已连接\n", node->ip, node->port);
         pthread_t tid;
-        pthread_create(&tid, &attr, recv_fun, node);
+        ret=pthread_create(&tid, &attr, recv_fun, node);
     }
 }

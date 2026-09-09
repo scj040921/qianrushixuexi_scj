@@ -1,21 +1,27 @@
 #include "myhead.h"
 
-#define LOCAL_PORT 10086
+#define LOCAL_PORT 10087
 int tcpsock;
 
 static void *recv_fun(void *arg)
 {
+    int ret;
     char line[2048];
     (void)arg;
-    while(recv_line(tcpsock, line, sizeof(line)) == 0)
+    while(1)
     {
+        ret=recv_line(tcpsock, line, sizeof(line));
+        if(ret != 0)
+            break;
         char *cmd = strtok(line, "#");
-        if(cmd == NULL) continue;
+        if(cmd == NULL)
+            continue;
         if(strcmp(cmd, "getlist") == 0)
         {
             printf("目前在线的客户端信息如下:\n");
             char *item;
-            while((item = strtok(NULL, "#")) != NULL) printf("%s\n", item);
+            while((item = strtok(NULL, "#")) != NULL)
+                printf("%s\n", item);
         }
         else if(strcmp(cmd, "chat") == 0)
         {
@@ -71,17 +77,28 @@ static void normalize_path(char *path)
 static int send_file(const char *cmd, const char *ip, unsigned short port,
                      const char *path, const char *type)
 {
+    int ret;
     FILE *fp = fopen(path, "rb");
+    char *filename;
     char header[2048], buf[2048];
     if(fp == NULL) { perror("文件打开失败"); return -1; }
     fseek(fp, 0, SEEK_END);
     long size = ftell(fp);
     fseek(fp, 0, SEEK_SET);
-    snprintf(header, sizeof(header), "%s@%s@%hu@%s@%s@%ld\n", cmd, ip, port, path, type, size);
-    if(send_all(tcpsock, header, strlen(header)) < 0) { fclose(fp); return -1; }
+    filename=strrchr(path, '/');
+    if(filename == NULL)
+        filename=(char *)path;
+    else
+        filename++;
+    snprintf(header, sizeof(header), "%s@%s@%hu@%s@%s@%ld\n", cmd, ip, port, filename, type, size);
+    ret=send_all(tcpsock, header, strlen(header));
+    if(ret < 0) { fclose(fp); return -1; }
     size_t n;
     while((n = fread(buf, 1, sizeof(buf), fp)) > 0)
-        if(send_all(tcpsock, buf, n) < 0) { fclose(fp); return -1; }
+    {
+        ret=send_all(tcpsock, buf, n);
+        if(ret < 0) { fclose(fp); return -1; }
+    }
     fclose(fp);
     printf("%s发送完毕！\n", strcmp(cmd, "emoji") == 0 ? "表情包" : "文件");
     return 0;
@@ -89,26 +106,26 @@ static int send_file(const char *cmd, const char *ip, unsigned short port,
 
 int main(void)
 {
-    pthread_t id;
     int ret;
+    pthread_t id;
     int n;
     char ip[64], msg[512], path[1024], type[64];
     unsigned short port;
-   struct sockaddr_in bindaddr;
+    struct sockaddr_in bindaddr;
     bindaddr.sin_family = AF_INET;
     bindaddr.sin_addr.s_addr = htonl(INADDR_ANY); 
     bindaddr.sin_port = htons(10086);
-   struct sockaddr_in serveraddr;
+    struct sockaddr_in serveraddr;
     serveraddr.sin_family = AF_INET; 
     serveraddr.sin_addr.s_addr = inet_addr("172.19.154.41"); 
     serveraddr.sin_port = htons(10000);
     tcpsock = socket(AF_INET, SOCK_STREAM, 0);
-    if(tcpsock < 0) 
-    { 
-        perror("创建失败"); 
-        return 1; 
+    if(tcpsock < 0)
+    {
+         perror("创建失败"); 
+         return 1;
     }
-    int on = 1; 
+    int on = 1;
     setsockopt(tcpsock, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
     ret=bind(tcpsock,(struct sockaddr *)&bindaddr,sizeof(struct sockaddr_in));
 	if(ret==-1)
@@ -148,7 +165,7 @@ int main(void)
                 continue;
             }
             snprintf(path,sizeof(path),"chat@%s@%hu@%s\n",ip,port,msg);
-            send_all(tcpsock,path,strlen(path));
+            ret=send_all(tcpsock,path,strlen(path));
         }
         else if(n == 2 || n == 3)
         {
@@ -175,7 +192,7 @@ int main(void)
             normalize_path(path);
             send_file(n == 2 ? "file" : "emoji",ip,port,path,type);
         }
-        else if(n == 4) send_all(tcpsock, "getlist\n", 8);
+        else if(n == 4) ret=send_all(tcpsock, "getlist\n", 8);
         else printf("输入错误!\n");
     }
     close(tcpsock);
